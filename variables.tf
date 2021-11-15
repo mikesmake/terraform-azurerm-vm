@@ -136,14 +136,14 @@ variable "oupath" {
 variable "active_directory_username" {
   type        = string
   description = "Admin username that is used to join the VM to the domain."
-  default     = "exkober"
+  default     = "nobody"
 }
 
 variable "active_directory_password" {
   type        = string
   sensitive   = true
   description = "Password of the admin account used to join the VM to the domain"
-  default     = "ZE=CxHl3@;BUAfR"
+  default     = "ReplaceInASecureWay"
 }
 
 variable "join_domain" {
