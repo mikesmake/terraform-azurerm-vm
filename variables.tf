@@ -33,10 +33,11 @@ variable "key_vault_name" {
 variable "vm_name" {
 
   type = object({
-    service            = string
-    environment_letter = string
-    role               = string
-    vm_number          = number
+    service                = string
+    environment_letter     = string
+    role                   = string
+    vm_number              = number
+    environment_short_name = string
     }
   )
 
@@ -50,21 +51,22 @@ variable "vm_name" {
 
   validation {
     condition = (
-      (contains(["web", "app", "sql"], lower(var.vm_name["role"])))
+      (contains(["web", "app", "sql", "agt"], lower(var.vm_name["role"])))
     )
-    error_message = "Role must be one of web app sql."
+    error_message = "Role must be one of web app sql agt."
   }
 
   validation {
     condition = (
-      lower(var.vm_name["service"]) == "onemps" ||
-      upper(var.vm_name["service"]) == "DWH" ||
-      lower(var.vm_name["service"]) == "dvlpmt" ||
-      lower(var.vm_name["service"]) == "portal" ||
-	  lower(var.vm_name["service"]) == "maps" ||
-      upper(var.vm_name["service"]) == "JKO"
+      lower(var.vm_name["service"]) == "onemps" || # for OneMPS service
+      lower(var.vm_name["service"]) == "dvlpmt" || # used when developing a VM
+      lower(var.vm_name["service"]) == "ptl" ||    # for Portal service
+      lower(var.vm_name["service"]) == "tosca" ||  # for Tosca service
+      lower(var.vm_name["service"]) == "cmtrx" ||  # for ContentMatrix
+      lower(var.vm_name["service"]) == "maps" ||  # for MAPS
+      lower(var.vm_name["service"]) == "neold"     # for Neoload service
     )
-    error_message = "Service must be one of OneMPS / dvlpmt."
+    error_message = "Service must be one of OneMPS / dvlpmt / PTL / tosca / ContentMatrix / neold."
   }
 
   validation {
@@ -114,46 +116,4 @@ variable "os_storage_account_type" {
   type        = string
   description = "Set OS storage account type"
   default     = "StandardSSD_LRS"
-}
-
-variable "active_directory_domain" {
-  type        = string
-  description = "Active Directory Name (FQDN)"
-  default     = "intra.mps-group.org"
-}
-
-variable "active_directory_netbios_domain" {
-  type        = string
-  description = "Active Directory Net Bios Name"
-  default     = "MPSNT"
-}
-
-variable "oupath" {
-  type        = string
-  description = "OU location where the computer object will be created."
-  default     = "OU=Test,OU=Servers,DC=intra,DC=mps-group,DC=org"
-}
-
-variable "active_directory_username" {
-  type        = string
-  description = "Admin username that is used to join the VM to the domain."
-  default     = "nobody"
-}
-
-variable "active_directory_password" {
-  type        = string
-  sensitive   = true
-  description = "Password of the admin account used to join the VM to the domain"
-  default     = "ReplaceInASecureWay"
-}
-
-variable "join_domain" {
-  type    = bool
-  default = false
-
-}
-
-variable "tags" {
-  type        = map(any)
-  description = "Tags to identify web app"
 }

@@ -10,8 +10,9 @@ terraform {
 }
 
 locals {
-  #Generate name in format "AAAAAA-B-CCCDD" where AAAAAA = 6 character service code, B = 1 character environment letter, CCC = 3 character role code, DD = Padded 2 character number
-  vm_name = "${var.vm_name["service"]}-${var.vm_name["environment_letter"]}-${var.vm_name["role"]}${format("%02d", var.vm_name["vm_number"])}"
+  #Generate name in format "AAA-B-CCCDD-EEE" where AAA = 3 character service code, B = 1 character environment letter, CCC = 3 character role code, DD = Padded 2 character number, EEE = 3 character environmnet short name
+  vm_name_short = "${var.vm_name["service"]}-${var.vm_name["environment_letter"]}-${var.vm_name["role"]}${format("%02d", var.vm_name["vm_number"])}"
+  vm_name_long  = "${var.vm_name["service"]}-${var.vm_name["environment_letter"]}-${var.vm_name["role"]}${format("%02d", var.vm_name["vm_number"])}-${var.vm_name["environment_short_name"]}"
 }
 
 
@@ -57,17 +58,15 @@ resource "random_password" "admin_password" {
 }
 
 resource "azurerm_key_vault_secret" "admin_user" {
-  name         = "${local.vm_name}-admin-username"
+  name         = "${local.vm_name_short}-admin-username"
   value        = random_id.admin_username.hex
   key_vault_id = data.azurerm_key_vault.key_vault.id
-
-  tags = var.tags
 
   depends_on = [data.azurerm_key_vault.key_vault]
 }
 
 resource "azurerm_key_vault_secret" "admin_user_password" {
-  name         = "${local.vm_name}-admin-password"
+  name         = "${local.vm_name_short}-admin-password"
   value        = random_password.admin_password.result
   key_vault_id = data.azurerm_key_vault.key_vault.id
 
@@ -78,14 +77,12 @@ resource "azurerm_key_vault_secret" "admin_user_password" {
     ]
   }
 
-  tags = var.tags
-
   depends_on = [data.azurerm_key_vault.key_vault]
 }
 
 
 resource "azurerm_network_interface" "nic" {
-  name                = "nic-${local.vm_name}"
+  name                = "nic-${local.vm_name_short}"
   location            = data.azurerm_resource_group.rg.location
   resource_group_name = data.azurerm_resource_group.rg.name
 
@@ -95,14 +92,12 @@ resource "azurerm_network_interface" "nic" {
     private_ip_address_allocation = "Dynamic"
   }
 
-  tags = var.tags
-
   depends_on = [data.azurerm_subnet.subnet]
 }
 
 resource "azurerm_windows_virtual_machine" "vm" {
-  name                = "vm-${local.vm_name}"
-  computer_name       = local.vm_name
+  name                = var.vm_name["environment_short_name"] != "" ? "vm-${local.vm_name_long}" : "vm-${local.vm_name_short}"
+  computer_name       = var.vm_name["environment_short_name"] != "" ? local.vm_name_long : local.vm_name_short
   resource_group_name = data.azurerm_resource_group.rg.name
   location            = data.azurerm_resource_group.rg.location
   size                = var.virtual_machine_size
@@ -131,22 +126,18 @@ resource "azurerm_windows_virtual_machine" "vm" {
     ]
   }
 
-  tags = var.tags
-
   depends_on = [data.azurerm_resource_group.rg]
 }
 
 resource "azurerm_managed_disk" "disks" {
   count = length(var.vm_disks)
 
-  name                 = "vm-${local.vm_name}-${count.index}"
+  name                 = "vm-${local.vm_name_short}-${count.index}"
   resource_group_name  = data.azurerm_resource_group.rg.name
   location             = data.azurerm_resource_group.rg.location
   storage_account_type = var.vm_disks[count.index]["storage_account_type"]
   create_option        = "Empty"
   disk_size_gb         = var.vm_disks[count.index]["disk_size_gb"]
-
-  tags = var.tags
 
   depends_on = [data.azurerm_resource_group.rg]
 }
@@ -161,43 +152,6 @@ resource "azurerm_virtual_machine_data_disk_attachment" "disk-attach" {
 
   depends_on = [azurerm_managed_disk.disks, azurerm_windows_virtual_machine.vm]
 }
-
-###############################################
-## Join Domain
-###############################################
-
-resource "azurerm_virtual_machine_extension" "join-domain" {
-
-  count                = var.join_domain ? 1 : 0
-  name                 = "join-domain"
-  virtual_machine_id   = azurerm_windows_virtual_machine.vm.id
-  publisher            = "Microsoft.Compute"
-  type                 = "JsonADDomainExtension"
-  type_handler_version = "1.3"
-
-  settings = <<SETTINGS
-{
-    "Name": "${var.active_directory_domain}",
-    "OUPath": "${var.oupath}",
-    "User": "${var.active_directory_netbios_domain}\\${var.active_directory_username}",
-    "Restart": "true",
-    "Options": "3"
-}
-SETTINGS
-
-  protected_settings = <<PROTECTED_SETTINGS
-    {
-        "Password": "${var.active_directory_password}"
-    }   
-PROTECTED_SETTINGS
-
-  tags = var.tags
-
-  depends_on = [azurerm_windows_virtual_machine.vm]
-}
-
-
-
 
 /*
     END resource providers
