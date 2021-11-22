@@ -117,3 +117,47 @@ variable "os_storage_account_type" {
   description = "Set OS storage account type"
   default     = "StandardSSD_LRS"
 }
+
+
+variable "active_directory_domain" {
+  type        = string
+  description = "Active Directory Name (FQDN)"
+  default     = "intra.mps-group.org"
+}
+
+variable "active_directory_netbios_domain" {
+  type        = string
+  description = "Active Directory Net Bios Name"
+  default     = "MPSNT"
+}
+
+variable "oupath" {
+  type        = string
+  description = "OU location where the computer object will be created."
+  default     = "OU=Test,OU=Servers,DC=intra,DC=mps-group,DC=org"
+}
+
+variable "active_directory_username" {
+  type        = string
+  description = "Admin username that is used to join the VM to the domain."
+  default     = "nobody"
+}
+
+variable "active_directory_password" {
+  type        = string
+  sensitive   = true
+  description = "Password of the admin account used to join the VM to the domain"
+  default     = "ReplaceInASecureWay"
+}
+
+variable "join_domain" {
+  type    = bool
+  default = false
+
+}
+
+variable "tags" {
+  type        = map(any)
+  description = "Tags to identify web app"
+}
+

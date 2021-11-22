@@ -153,6 +153,46 @@ resource "azurerm_virtual_machine_data_disk_attachment" "disk-attach" {
   depends_on = [azurerm_managed_disk.disks, azurerm_windows_virtual_machine.vm]
 }
 
+
+###############################################
+## Join Domain
+###############################################
+
+resource "azurerm_virtual_machine_extension" "join-domain" {
+
+  count                = var.join_domain ? 1 : 0
+  name                 = "join-domain"
+  virtual_machine_id   = azurerm_windows_virtual_machine.vm.id
+  publisher            = "Microsoft.Compute"
+  type                 = "JsonADDomainExtension"
+  type_handler_version = "1.3"
+
+  settings = <<SETTINGS
+{
+    "Name": "${var.active_directory_domain}",
+    "OUPath": "${var.oupath}",
+    "User": "${var.active_directory_netbios_domain}\\${var.active_directory_username}",
+    "Restart": "true",
+    "Options": "3"
+}
+SETTINGS
+
+  protected_settings = <<PROTECTED_SETTINGS
+    {
+        "Password": "${var.active_directory_password}"
+    }   
+PROTECTED_SETTINGS
+
+  tags = var.tags
+
+  depends_on = [azurerm_windows_virtual_machine.vm]
+}
+
+
+
+
+
+
 /*
     END resource providers
 */
