@@ -61,6 +61,7 @@ variable "vm_name" {
       upper(var.vm_name["service"]) == "DWH" ||
       lower(var.vm_name["service"]) == "dvlpmt" ||
       lower(var.vm_name["service"]) == "portal" ||
+	  lower(var.vm_name["service"]) == "MAPS" ||
       upper(var.vm_name["service"]) == "JKO"
     )
     error_message = "Service must be one of OneMPS / dvlpmt."
